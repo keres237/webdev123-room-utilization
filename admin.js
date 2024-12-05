@@ -116,16 +116,16 @@ $(document).ready(function () {
     viewroomStatus(); // Call the function to load products
   });
 
-  $("#products-link").on("click", function (e) {
-    e.preventDefault(); // Prevent default behavior
-    viewProducts(); // Call the function to load products
-  });
-
   $("#profile-link").on("click", function (e) {
     e.preventDefault(); // Prevent default behavior
     viewProfile(); // Call the function to load products
   });
 
+  // Add the new schedule link event listener
+  $("#schedule-link").on("click", function (e) {
+    e.preventDefault(); // Prevent default behavior
+    viewSchedule(); // Call the function to load schedule
+  });
 
   // Determine which page to load based on the current URL
   let url = window.location.href;
@@ -137,6 +137,8 @@ $(document).ready(function () {
     $("#roomschedule-link").trigger("click"); // Trigger the products click event
   } else if (url.endsWith("profile-page")) {
     $("#profile-link").trigger("click"); // Trigger the products click event
+  } else if (url.endsWith("schedule")) {
+    $("#schedule-link").trigger("click"); // Trigger the schedule click event
   } else {
     $("#roomlist-link").trigger("click"); // Default to dashboard if no specific page
   }
@@ -1292,5 +1294,78 @@ $(document).ready(function () {
     });
   }
 
-  
+  // Function to load schedule view
+  function viewSchedule() {
+    $.ajax({
+        type: "GET",
+        url: "../schedule/viewSchedule.php?v=" + new Date().getTime(),
+        dataType: "html",
+        success: function(response) {
+            $(".content-page").html(response);
+            
+            // Initialize room filter functionality
+            $('#filter').click(function() {
+                const roomId = $('#room').val();
+                if (roomId) {
+                    loadSchedule(roomId);
+                    $('#room-title').text($('#room option:selected').text());
+                }
+            });
+        },
+        error: function(xhr, status, error) {
+            console.error("Error loading schedule view:", error);
+        }
+    });
+  }
+
+  // Function to load schedule data
+  function loadSchedule(roomId) {
+    $.ajax({
+        url: '../handlers/get-schedule.php',
+        method: 'POST',
+        data: { room_id: roomId },
+        dataType: 'json',
+        success: function(response) {
+            updateScheduleTable(response);
+        },
+        error: function(xhr, status, error) {
+            console.error('Error loading schedule:', error);
+        }
+    });
+  }
+
+  // Function to update schedule table
+  function updateScheduleTable(schedules) {
+    $('.schedule-cell').empty();
+    
+    schedules.forEach(function(schedule) {
+        const timeStr = formatTime(schedule.start_time);
+        const cell = $(`.schedule-cell[data-time="${timeStr}"][data-day="${schedule.day_id}"]`);
+        
+        cell.html(`
+            <div class="subject">${schedule.subject_code}</div>
+            <div class="section">${schedule.section_name}</div>
+            <div class="teacher">${schedule.teacher_name}</div>
+        `);
+    });
+  }
+
+  // Helper function to format time
+  function formatTime(time) {
+    const date = new Date(`2000-01-01 ${time}`);
+    return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+    }).replace(':00', '');
+  }
+
+  // Add click event handler for schedule link
+  $(document).ready(function() {
+    $(document).on('click', '.schedule-link', function(e) {
+        e.preventDefault();
+        viewSchedule();
+    });
+  });
+
 });
